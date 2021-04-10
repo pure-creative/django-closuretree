@@ -31,7 +31,6 @@ from django.db.models import Q, CASCADE
 from django.db.models.base import ModelBase
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
-from django.utils.six import with_metaclass
 import sys
 
 def _closure_model_unicode(self):
@@ -129,7 +128,7 @@ class ClosureModelBase(ModelBase):
                 create_closure_model(cls)
             )
 
-class ClosureModel(with_metaclass(ClosureModelBase, models.Model)):
+class ClosureModel(models.Model, metaclass=ClosureModelBase):
     """Provides methods to assist in a tree based structure."""
     # pylint: disable=W5101
 
