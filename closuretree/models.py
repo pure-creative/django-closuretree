@@ -355,7 +355,7 @@ class ClosureModel(models.Model, metaclass=ClosureModelBase):
         return self._closure_model.objects.filter(
             parent=other,
             child=self
-        ).exclude(pk=self.pk).exists()
+        ).exists()
 
     def is_ancestor_of(self, other, include_self=False):
         """Is this node an ancestor of `other`?"""
