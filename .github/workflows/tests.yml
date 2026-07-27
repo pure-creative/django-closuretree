@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, develop]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install coverage
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: test_settings
+        run: coverage run --source closuretree -m django test closuretree
+
+      - name: Coverage report
+        run: coverage xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+
+  publish:
+    needs: [test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: pip install build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Publish to Cloudsmith
+        env:
+          TWINE_USERNAME: token
+          TWINE_PASSWORD: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          twine upload --non-interactive --skip-existing \
+            --repository-url "https://python.cloudsmith.io/${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }}/" \
+            dist/*
