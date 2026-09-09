@@ -56,11 +56,44 @@ jobs:
       - name: Build sdist and wheel
         run: python -m build
 
+      # Fail early and legibly rather than letting twine report an empty
+      # password as an authentication error.
+      - name: Check the Cloudsmith credential is present
+        env:
+          TWINE_PASSWORD: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "::error::CLOUDSMITH_API_KEY is not set in this repository's Actions secrets."
+            echo "Add it under Settings > Secrets and variables > Actions, then re-run this job."
+            exit 1
+          fi
+
+      # Catches a malformed long_description before it reaches the index rather
+      # than after, when the rendered package page is already broken.
+      - name: Check package metadata
+        run: twine check dist/*
+
+      # The target is hardcoded. It used to be
+      # ${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }}, and neither
+      # variable has ever been set on this repository, so any tag would have
+      # uploaded to a URL with an empty owner and repository. pure-stack is the
+      # only Cloudsmith repository that exists, and keeping every package in one
+      # of them means one entitlement token per client rather than one per
+      # registry repository, which is what makes per-package licence scoping
+      # possible later.
+      #
+      # No --skip-existing: twine 7.0.0 added verify_feature_capability(), which
+      # raises UnsupportedConfiguration unless the repository URL is PyPI or
+      # TestPyPI. twine is installed unpinned above, so this job moves onto 7.0.0
+      # on its own and fails before authenticating. The flag was inert here
+      # regardless: twine's skip logic keys off Warehouse's "file already exists"
+      # response, which Cloudsmith does not return. Re-publishing an existing
+      # version now fails loudly, which is the honest outcome.
       - name: Publish to Cloudsmith
         env:
           TWINE_USERNAME: token
           TWINE_PASSWORD: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
-          twine upload --non-interactive --skip-existing \
-            --repository-url "https://python.cloudsmith.io/${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }}/" \
+          twine upload --non-interactive \
+            --repository-url "https://python.cloudsmith.io/pure-creative/pure-stack/" \
             dist/*
