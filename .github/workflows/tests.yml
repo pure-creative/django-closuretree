@@ -1,0 +1,103 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, develop]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install coverage
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: test_settings
+        run: coverage run --source closuretree -m django test closuretree
+
+      - name: Coverage report
+        run: coverage xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+
+  publish:
+    needs: [test]
+    # Accepts both `1.3.1` and `v1.3.1`. Every tag this repo already carries is
+    # unprefixed (1.1.7 through 1.2.0), so a `refs/tags/v*` gate alone would let
+    # a release tagged by the repo's own convention pass CI and silently never
+    # publish. setuptools_scm parses either form, so the version is unaffected.
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: pip install build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      # Fail early and legibly rather than letting twine report an empty
+      # password as an authentication error.
+      - name: Check the Cloudsmith credential is present
+        env:
+          TWINE_PASSWORD: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "::error::CLOUDSMITH_API_KEY is not set in this repository's Actions secrets."
+            echo "Add it under Settings > Secrets and variables > Actions, then re-run this job."
+            exit 1
+          fi
+
+      # Catches a malformed long_description before it reaches the index rather
+      # than after, when the rendered package page is already broken.
+      - name: Check package metadata
+        run: twine check dist/*
+
+      # The target is hardcoded. It used to be
+      # ${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }}, and neither
+      # variable has ever been set on this repository, so any tag would have
+      # uploaded to a URL with an empty owner and repository. pure-stack is the
+      # only Cloudsmith repository that exists, and keeping every package in one
+      # of them means one entitlement token per client rather than one per
+      # registry repository, which is what makes per-package licence scoping
+      # possible later.
+      #
+      # No --skip-existing: twine 7.0.0 added verify_feature_capability(), which
+      # raises UnsupportedConfiguration unless the repository URL is PyPI or
+      # TestPyPI. twine is installed unpinned above, so this job moves onto 7.0.0
+      # on its own and fails before authenticating. The flag was inert here
+      # regardless: twine's skip logic keys off Warehouse's "file already exists"
+      # response, which Cloudsmith does not return. Re-publishing an existing
+      # version now fails loudly, which is the honest outcome.
+      - name: Publish to Cloudsmith
+        env:
+          TWINE_USERNAME: token
+          TWINE_PASSWORD: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          twine upload --non-interactive \
+            --repository-url "https://python.cloudsmith.io/pure-creative/pure-stack/" \
+            dist/*

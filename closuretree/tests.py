@@ -94,36 +94,36 @@ class BaseTestCase(TestCase):
         """
         Tests that adding a new parent relationship creates closures
         """
-        self.failUnlessEqual(self.closure_model.objects.count(), 4)
+        self.assertEqual(self.closure_model.objects.count(), 4)
         self.b.parent2 = self.a
         self.b.save()
-        self.failUnlessEqual(self.closure_model.objects.count(), 5)
+        self.assertEqual(self.closure_model.objects.count(), 5)
         self.c.parent2 = self.b
         self.c.save()
         # Test double save
         self.c.save()
         self.d.parent2 = self.c
         self.d.save()
-        self.failUnlessEqual(self.closure_model.objects.count(), 10)
+        self.assertEqual(self.closure_model.objects.count(), 10)
 
     def test_deletion(self):
         """
             Tests that deleting a relationship removes the closure entries.
         """
-        self.failUnlessEqual(self.closure_model.objects.count(), 4)
+        self.assertEqual(self.closure_model.objects.count(), 4)
         self.b.parent2 = self.a
         self.b.save()
-        self.failUnlessEqual(self.closure_model.objects.count(), 5)
+        self.assertEqual(self.closure_model.objects.count(), 5)
         self.b.parent2 = None
         self.b.save()
-        self.failUnlessEqual(self.closure_model.objects.count(), 4)
+        self.assertEqual(self.closure_model.objects.count(), 4)
         self.b.parent2 = self.a
         self.b.save()
         self.c.parent2 = self.b
         self.c.save()
-        self.failUnlessEqual(self.closure_model.objects.count(), 7)
+        self.assertEqual(self.closure_model.objects.count(), 7)
         self.b.delete()
-        self.failUnlessEqual(self.closure_model.objects.count(), 2)
+        self.assertEqual(self.closure_model.objects.count(), 2)
 
 
 if VERSION >= (1, 8):
@@ -167,38 +167,38 @@ class AncestorTestCase(TestCase):
 
     def test_ancestors(self):
         """Testing the ancestors method."""
-        self.failUnlessEqual(list(self.a.get_ancestors()), [])
-        self.failUnlessEqual(list(self.b.get_ancestors()), [self.a])
-        self.failUnlessEqual(
+        self.assertEqual(list(self.a.get_ancestors()), [])
+        self.assertEqual(list(self.b.get_ancestors()), [self.a])
+        self.assertEqual(
             list(self.a.get_ancestors(include_self=True)),
             [self.a]
         )
-        self.failUnlessEqual(
+        self.assertEqual(
             list(self.c.get_ancestors(include_self=True)),
             [self.c, self.b, self.a]
         )
-        self.failUnlessEqual(
+        self.assertEqual(
             list(self.c.get_ancestors(include_self=True, depth=1)),
             [self.c, self.b]
         )
 
     def test_descendants(self):
         """Testing the descendants method."""
-        self.failUnlessEqual(list(self.c.get_descendants()), [])
-        self.failUnlessEqual(list(self.b.get_descendants()), [self.c])
-        self.failUnlessEqual(
+        self.assertEqual(list(self.c.get_descendants()), [])
+        self.assertEqual(list(self.b.get_descendants()), [self.c])
+        self.assertEqual(
             list(self.a.get_descendants(include_self=True)),
             [self.a, self.b, self.c]
         )
-        self.failUnlessEqual(
+        self.assertEqual(
             list(self.c.get_descendants(include_self=True)),
             [self.c]
         )
 
     def test_children(self):
         """Testing the children method."""
-        self.failUnlessEqual(list(self.c.get_children()), [])
-        self.failUnlessEqual(list(self.b.get_children()), [self.c])
+        self.assertEqual(list(self.c.get_children()), [])
+        self.assertEqual(list(self.b.get_children()), [self.c])
 
 class AncestorForEachTestCase(TestCase):
     """Testing ancestor method in ClosureModelQuerySet"""
@@ -214,22 +214,22 @@ class AncestorForEachTestCase(TestCase):
 
     def test_descendants_foreach(self):
         """Testing get_descendants_foreach()"""
-        self.failUnlessEqual(
+        self.assertEqual(
             list(TC.objects.filter(name="a").get_descendants_foreach()),
             [self.a, self.b, self.c, self.d, self.e]
         )
-        self.failUnlessEqual(
+        self.assertEqual(
             list(TC.objects.filter(name__in=["b", "d"]).get_descendants_foreach()),
             [self.b, self.c, self.d, self.e]
         )
 
     def test_ancestors_foreach(self):
         """Testing get_descendants_foreach()"""
-        self.failUnlessEqual(
+        self.assertEqual(
             list(TC.objects.filter(name="c").get_ancestors_foreach()),
             [self.c, self.b, self.a]
         )
-        self.failUnlessEqual(
+        self.assertEqual(
             list(TC.objects.filter(name__in=["c", "e"]).get_ancestors_foreach()),
             [self.c, self.b, self.a, self.e, self.d]
         )
@@ -253,25 +253,25 @@ class RebuildTestCase(TestCase):
     def test_rebuild_from_full(self):
         """Test a rebuild when the tree is correct."""
 
-        self.failUnlessEqual(TCClosure.objects.count(), 8)
+        self.assertEqual(TCClosure.objects.count(), 8)
         TC.rebuildtable()
-        self.failUnlessEqual(TCClosure.objects.count(), 8)
+        self.assertEqual(TCClosure.objects.count(), 8)
 
     def test_rebuild_from_empty(self):
         """Test a rebuild when the tree is empty."""
 
         TCClosure.objects.all().delete()
         TC.rebuildtable()
-        self.failUnlessEqual(TCClosure.objects.count(), 8)
+        self.assertEqual(TCClosure.objects.count(), 8)
 
     def test_rebuild_from_partial(self):
         """Test a rebuild when the tree is partially empty."""
 
         TCClosure.objects.get(parent__name='a', child__name='a').delete()
         TCClosure.objects.get(parent__name='a', child__name='c').delete()
-        self.failUnlessEqual(TCClosure.objects.count(), 6)
+        self.assertEqual(TCClosure.objects.count(), 6)
         TC.rebuildtable()
-        self.failUnlessEqual(TCClosure.objects.count(), 8)
+        self.assertEqual(TCClosure.objects.count(), 8)
 
 class InitialClosureTestCase(TestCase):
     """Tests for when things are created with a parent."""
@@ -279,11 +279,11 @@ class InitialClosureTestCase(TestCase):
     def test_creating_with_parent(self):
         """Make sure closures are created when making objects."""
         a = TC.objects.create(name="a")
-        self.failUnlessEqual(TCClosure.objects.count(), 1)
+        self.assertEqual(TCClosure.objects.count(), 1)
         b = TC.objects.create(name="b", parent2=a)
-        self.failUnlessEqual(TCClosure.objects.count(), 3)
+        self.assertEqual(TCClosure.objects.count(), 3)
         TC.objects.create(name="c", parent2=b)
-        self.failUnlessEqual(TCClosure.objects.count(), 6)
+        self.assertEqual(TCClosure.objects.count(), 6)
 
 class IsTestCase(TestCase):
     """Test some useful methods."""
@@ -429,15 +429,15 @@ class SentinelAttributeTestCase(TestCase):
     def test_closure_creation(self):
         '''Test creation of closures in the sentinel case'''
 
-        self.failUnlessEqual(SentinelModelClosure.objects.count(), 4)
+        self.assertEqual(SentinelModelClosure.objects.count(), 4)
 
         self.b.location = self.l1
         self.b.save()
-        self.failUnlessEqual(self.b.parent, self.a)
+        self.assertEqual(self.b.parent, self.a)
         self.c.location = self.l2
         self.c.save()
 
-        self.failUnlessEqual(SentinelModelClosure.objects.count(), 7)
+        self.assertEqual(SentinelModelClosure.objects.count(), 7)
 
     def test_num_queries(self):
         '''Test that we don't need to access the objects until we make a change.'''
@@ -476,8 +476,8 @@ class NoMetaTestCase(TestCase):
         a = TCNoMeta.objects.create(name='a')
         b = TCNoMeta.objects.create(name='b', parent=a)
         c = TCNoMeta.objects.create(name='c', parent=b)
-        self.failUnlessEqual(a.get_descendants().count(), 2)
-        self.failUnlessEqual(c.get_ancestors().count(), 2)
+        self.assertEqual(a.get_descendants().count(), 2)
+        self.assertEqual(c.get_ancestors().count(), 2)
 
 class TCAbstract(ClosureModel):
     """A test model with Meta.abstract = True."""

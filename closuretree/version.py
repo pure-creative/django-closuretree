@@ -1,7 +1,7 @@
-from pkg_resources import get_distribution, DistributionNotFound
+from importlib import metadata as importlib_metadata
 
 try:
-    __VERSION__ = get_distribution(__name__).version
-except DistributionNotFound:
+    __VERSION__ = importlib_metadata.version("django-closuretree")
+except importlib_metadata.PackageNotFoundError:
     # package is not installed
     pass

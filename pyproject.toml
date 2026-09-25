@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-closuretree"
+dynamic = ["version"]
+description = "Efficient tree-based datastructure for Django"
+readme = "README.rst"
+authors = [
+    {name = "Mike Bryant", email = "mike.bryant@ocado.com"},
+]
+maintainers = [
+    {name = "Sam Minton", email = "sam@purecreative.digital"},
+]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "Django>=4.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/pure-creative/django-closuretree"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = ["closuretree*"]
+
+[tool.setuptools_scm]
